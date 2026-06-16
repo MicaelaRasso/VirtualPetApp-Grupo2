@@ -109,3 +109,16 @@ La única excepción son los documentos de arquitectura dirigidos al equipo (com
 
 - ADR-11: Stack Tecnológico para la Aplicación Móvil de Repartidores.
 - Documentación oficial de [Expo](https://docs.expo.dev/), [Expo Router](https://docs.expo.dev/router/introduction/), [WatermelonDB](https://watermelondb.dev/docs), [Zustand](https://docs.pmnd.rs/zustand).
+
+## 11. Contexto de Diseño (Design Context)
+
+Resumen de las decisiones tomadas con Impeccable. Ver archivos completos en `PRODUCT.md` y `DESIGN.md`.
+
+- **Registro:** product — la interfaz sirve a la tarea del repartidor, no es marketing.
+- **Personalidad de marca:** calm, reliable, human (calma, confiable, humana).
+- **Principios clave:** una tarea por pantalla; legible de un vistazo bajo sol; offline-first en la interfaz; targets grandes y alcance con una mano; lenguaje operacional, no abstracto.
+- **Paleta (seed):** estrategia *restrained*, primario azul marino frío, acento ámbar cálido para estados funcionales, superficie blanca o gris frío, tinta oscura fría.
+- **Tipografía:** una sola familia sans humanista cálida para todo.
+- **Elevación:** plana por defecto; profundidad por tono, no sombras decorativas.
+- **Movimiento:** restringido por defecto; solo cambios de estado y feedback, respetando `prefers-reduced-motion`.
+- **Accesibilidad:** WCAG 2.2 AA mínimo, AAA para texto operacional al aire libre; alto contraste para luz solar; tipografía y movimiento reducidos del sistema.
