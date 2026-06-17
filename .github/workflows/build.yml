@@ -29,26 +29,4 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build Android APK
-        run: |
-          eas build \
-            --platform android \
-            --profile preview \
-            --non-interactive \
-            --wait \
-            --json > build.json
-
-      - name: Download APK artifact
-        run: |
-          ARTIFACT_URL=$(python3 -c "
-          import json
-          data = json.load(open('build.json'))
-          artifacts = data.get('artifacts', {})
-          print(artifacts.get('applicationArchiveUrl') or artifacts.get('buildUrl'))
-          ")
-          curl -L -o build.apk "$ARTIFACT_URL"
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: build.apk
+        run: eas build --platform android --profile preview --non-interactive

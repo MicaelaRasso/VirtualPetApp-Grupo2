@@ -35,5 +35,24 @@
     "eslint-config-expo": "~56.0.4",
     "typescript": "~6.0.3"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false,
+        "exclude": [
+          "@nozbe/watermelondb",
+          "@nozbe/simdjson",
+          "expo-modules-jsi"
+        ]
+      }
+    },
+    "install": {
+      "exclude": [
+        "@sentry/react-native",
+        "react-native-safe-area-context",
+        "react"
+      ]
+    }
+  },
   "private": true
 }
