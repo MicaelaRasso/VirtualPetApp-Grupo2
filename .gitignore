@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# Skills
+.opencode/
+
 # Expo
 .expo/
 dist/
