@@ -29,72 +29,26 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build Android APK
-        run: eas build --platform android --profile preview --non-interactive --output build.apk
+        run: |
+          eas build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --wait \
+            --json > build.json
+
+      - name: Download APK artifact
+        run: |
+          ARTIFACT_URL=$(python3 -c "
+          import json
+          data = json.load(open('build.json'))
+          artifacts = data.get('artifacts', {})
+          print(artifacts.get('applicationArchiveUrl') or artifacts.get('buildUrl'))
+          ")
+          curl -L -o build.apk "$ARTIFACT_URL"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: build.apk
-
-  build-android-aab:
-    name: Build Android AAB
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Build Android AAB
-        run: eas build --platform android --profile production --non-interactive --output build.aab
-
-      - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-aab
-          path: build.aab
-
-  build-ios-simulator:
-    name: Build iOS Simulator archive
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Build iOS Simulator archive
-        run: eas build --platform ios --profile ios-simulator --non-interactive --output ios-simulator.tar.gz
-
-      - name: Upload iOS Simulator artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-simulator
-          path: ios-simulator.tar.gz
