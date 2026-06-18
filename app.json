@@ -2,6 +2,7 @@
   "expo": {
     "name": "delivery-app",
     "slug": "delivery-app",
+    "owner": "virtualpet-das",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/iconoapp.png",
@@ -63,7 +64,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "66074b99-2020-4e7b-8734-bced2a2770af"
+        "projectId": "236fa160-fd97-405d-b6db-e47e267a23ed"
       }
     }
   }
