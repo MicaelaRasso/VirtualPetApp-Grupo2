@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 
-import { login as loginService } from '@/services/auth';
+import { login as loginService, logoutFromServer, refreshAccessToken } from '@/services/auth';
 import { AuthCredentials, AuthError, Driver } from '@/types/auth';
 
 const TOKEN_KEY = 'auth_token';
+const REFRESH_KEY = 'auth_refresh_token';
 const DRIVER_KEY = 'auth_driver';
 
 interface AuthState {
@@ -18,16 +19,19 @@ interface AuthState {
   login: (credentials: AuthCredentials) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  refresh: () => Promise<boolean>;
   clearError: () => void;
 }
 
-async function saveSession(token: string, driver: Driver): Promise<void> {
+async function saveSession(token: string, refreshToken: string, driver: Driver): Promise<void> {
   await SecureStore.setItemAsync(TOKEN_KEY, token);
+  await SecureStore.setItemAsync(REFRESH_KEY, refreshToken);
   await SecureStore.setItemAsync(DRIVER_KEY, JSON.stringify(driver));
 }
 
-async function loadSession(): Promise<{ token: string | null; driver: Driver | null }> {
+async function loadSession(): Promise<{ token: string | null; refreshToken: string | null; driver: Driver | null }> {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  const refreshToken = await SecureStore.getItemAsync(REFRESH_KEY);
   const driverRaw = await SecureStore.getItemAsync(DRIVER_KEY);
 
   let driver: Driver | null = null;
@@ -39,16 +43,13 @@ async function loadSession(): Promise<{ token: string | null; driver: Driver | n
     }
   }
 
-  return { token, driver };
+  return { token, refreshToken, driver };
 }
 
 async function clearSession(): Promise<void> {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await SecureStore.deleteItemAsync(REFRESH_KEY);
   await SecureStore.deleteItemAsync(DRIVER_KEY);
-}
-
-function isNetworkError(error: unknown): boolean {
-  return !(error instanceof AuthError);
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -75,7 +76,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const response = await loginService(credentials);
-      await saveSession(response.token, response.driver);
+      await saveSession(response.token, response.refreshToken, response.driver);
       set({
         isAuthenticated: true,
         isLoading: false,
@@ -85,14 +86,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       return;
     } catch (error) {
-      if (!isNetworkError(error)) {
-        set({ isLoading: false, error: (error as AuthError).message });
+      // AuthError = credenciales incorrectas → mostrar mensaje, no intentar offline
+      if (error instanceof AuthError) {
+        set({ isLoading: false, error: error.message });
         return;
       }
 
-      // Network error: fall back to local session if the DNI matches.
+      // Cualquier otro error (TypeError de fetch, timeout, etc.) = sin conexión
+      // Intentar fallback con la sesión guardada localmente
       const { token, driver } = await loadSession();
-      if (token && driver && driver.dni === credentials.dni && credentials.password.length > 0) {
+      if (token && driver && driver.email === credentials.email && credentials.password.length > 0) {
         set({
           isAuthenticated: true,
           isLoading: false,
@@ -111,6 +114,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    // Intentar invalidar el token en el servidor (no bloqueante)
+    try {
+      const { token } = await loadSession();
+      if (token) {
+        await logoutFromServer(token);
+      }
+    } catch {
+      // Si falla, igual limpiamos local
+    }
+
     await clearSession();
     set({
       isAuthenticated: false,
@@ -119,6 +132,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       driver: null,
       error: null,
     });
+  },
+
+  refresh: async () => {
+    try {
+      const { refreshToken } = await loadSession();
+      if (!refreshToken) return false;
+
+      const result = await refreshAccessToken(refreshToken);
+      await SecureStore.setItemAsync(TOKEN_KEY, result.accessToken);
+      if (result.refreshToken) {
+        await SecureStore.setItemAsync(REFRESH_KEY, result.refreshToken);
+      }
+      return true;
+    } catch {
+      // Refresh falló → sesión expirada
+      await clearSession();
+      set({ isAuthenticated: false, driver: null });
+      return false;
+    }
   },
 
   clearError: () => set({ error: null }),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 
+import { router } from 'expo-router';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { OfflineBadge } from '@/components/OfflineBadge';
@@ -15,15 +16,22 @@ import { colors, spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function LoginScreen() {
-  const [dni, setDni] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const { login, isLoading, error, isOffline } = useAuthStore();
+  const { login, isLoading, isAuthenticated, error, isOffline } = useAuthStore();
 
-  const isSubmitDisabled = dni.trim().length === 0 || password.length === 0 || isLoading;
+  // Navegar cuando el login sea exitoso
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(auth)' as any);
+    }
+  }, [isAuthenticated]);
+
+  const isSubmitDisabled = email.trim().length === 0 || password.length === 0 || isLoading;
 
   const handleLogin = async () => {
-    await login({ dni: dni.trim(), password });
+    await login({ email: email.trim(), password });
   };
 
   return (
@@ -52,12 +60,12 @@ export default function LoginScreen() {
               autoCapitalize="none"
               editable={!isLoading}
               error={null}
-              keyboardType="numeric"
-              label="DNI"
-              onChangeText={setDni}
-              placeholder="Ej: 12345678"
-              testID="login-dni-input"
-              value={dni}
+              keyboardType="email-address"
+              label="Email"
+              onChangeText={setEmail}
+              placeholder="Ej: gian@virtualpet.com"
+              testID="login-email-input"
+              value={email}
             />
 
             <Input

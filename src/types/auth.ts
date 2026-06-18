@@ -1,16 +1,17 @@
 export interface Driver {
   id: string;
-  dni: string;
+  email: string;
   fullName: string;
 }
 
 export interface AuthCredentials {
-  dni: string;
+  email: string;
   password: string;
 }
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   driver: Driver;
 }
 

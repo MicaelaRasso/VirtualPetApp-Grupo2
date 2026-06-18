@@ -108,3 +108,17 @@ export const touchTargets = {
   minHeight: 48,
   minWidth: 48,
 } as const;
+
+/**
+ * Named Inter font variants for React Native.
+ * React Native requires the exact loaded font name — no fontWeight fallback.
+ * These match the names exported by @expo-google-fonts/inter.
+ */
+export const fonts = {
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+  // Fallback to system font if Inter is not loaded yet
+  system: undefined as string | undefined,
+} as const;

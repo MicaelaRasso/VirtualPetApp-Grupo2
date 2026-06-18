@@ -1,33 +1,112 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useCallback } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
+import { OrderCard } from '@/components/OrderCard';
 import { OfflineBadge } from '@/components/OfflineBadge';
-import { Button } from '@/components/Button';
-import { colors, spacing, typography } from '@/constants/theme';
+import { colors, fonts, spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
+import { useOrdersStore } from '@/stores/ordersStore';
 
-export default function OrdersScreen() {
-  const { driver, isOffline, logout } = useAuthStore();
+export default function AvailableOrdersScreen() {
+  const { driver, isOffline } = useAuthStore();
+  const {
+    availableOrders,
+    isLoadingAvailable,
+    actionLoadingId,
+    error,
+    loadAvailableOrders,
+    pickup,
+    clearError,
+  } = useOrdersStore();
+
+  useEffect(() => {
+    loadAvailableOrders();
+  }, []);
+
+  const handlePickup = useCallback(async (id: string) => {
+    await pickup(id);
+  }, [pickup]);
+
+  const handleRefresh = useCallback(() => {
+    loadAvailableOrders();
+  }, [loadAvailableOrders]);
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hola, {driver?.fullName ?? 'repartidor'}</Text>
-          <Text style={styles.subtitle}>Estos son tus pedidos asignados</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.greeting}>
+              Hola, {driver?.fullName ?? 'repartidor'}
+            </Text>
+            <Text style={styles.subtitle}>Pedidos listos para retirar</Text>
+          </View>
+          {isOffline ? <OfflineBadge /> : null}
         </View>
-        {isOffline ? <OfflineBadge /> : null}
       </View>
 
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>No tenés pedidos asignados</Text>
-        <Text style={styles.emptyText}>
-          Cuando se te asignen pedidos desde el depósito, aparecerán acá.
-        </Text>
-      </View>
+      {/* Error banner */}
+      {error ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text onPress={clearError} style={styles.errorDismiss}>
+            Cerrar
+          </Text>
+        </View>
+      ) : null}
 
-      <View style={styles.footer}>
-        <Button label="Cerrar sesión" onPress={logout} />
-      </View>
+      {/* Loading first fetch */}
+      {isLoadingAvailable && availableOrders.length === 0 ? (
+        <View style={styles.centerState}>
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.loadingText}>Cargando pedidos...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={availableOrders}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <OrderCard
+              order={item}
+              variant="available"
+              onPickup={handlePickup}
+              isLoading={actionLoadingId === item.id}
+            />
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoadingAvailable}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.centerState}>
+              <Image
+                source={require('../../../../assets/images/nohaypedidos.png')}
+                style={styles.emptyImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.emptyTitle}>Sin pedidos disponibles</Text>
+              <Text style={styles.emptyText}>
+                Cuando haya pedidos listos en el depósito, aparecerán acá.
+              </Text>
+            </View>
+          }
+          contentContainerStyle={
+            availableOrders.length === 0 ? styles.emptyContainer : styles.listContent
+          }
+        />
+      )}
     </View>
   );
 }
@@ -35,53 +114,95 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing['24'],
+    backgroundColor: colors.surface,
     paddingTop: spacing['64'],
-    paddingBottom: spacing['24'],
   },
   header: {
-    marginBottom: spacing['32'],
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing['24'],
+    paddingBottom: spacing['16'],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing['8'],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing['8'],
   },
   greeting: {
     color: colors.ink,
-    fontFamily: typography.family.sans,
+    fontFamily: fonts.bold,
     fontSize: typography.sizes['2xl'],
-    fontWeight: typography.weights.bold,
     lineHeight: typography.sizes['2xl'] * typography.lineHeights.tight,
-    marginBottom: spacing['8'],
   },
   subtitle: {
     color: colors.muted,
-    fontFamily: typography.family.sans,
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.regular,
-    lineHeight: typography.sizes.base * typography.lineHeights.relaxed,
-    marginBottom: spacing['16'],
+    fontFamily: fonts.regular,
+    fontSize: typography.sizes.sm,
+    marginTop: spacing['4'],
   },
-  emptyState: {
+  errorBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.errorMuted,
+    marginHorizontal: spacing['16'],
+    marginBottom: spacing['8'],
+    padding: spacing['12'],
+    borderRadius: 8,
+  },
+  errorText: {
+    flex: 1,
+    color: colors.error,
+    fontFamily: typography.family.sans,
+    fontSize: typography.sizes.sm,
+  },
+  errorDismiss: {
+    color: colors.error,
+    fontFamily: typography.family.sans,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    marginLeft: spacing['8'],
+  },
+  listContent: {
+    paddingHorizontal: spacing['16'],
+    paddingBottom: spacing['24'],
+  },
+  emptyContainer: {
+    flex: 1,
+  },
+  centerState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: spacing['32'],
+    paddingVertical: spacing['64'],
   },
-  emptyTitle: {
-    color: colors.ink,
-    fontFamily: typography.family.sans,
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    lineHeight: typography.sizes.lg * typography.lineHeights.normal,
-    marginBottom: spacing['8'],
-    textAlign: 'center',
-  },
-  emptyText: {
+  loadingText: {
+    marginTop: spacing['16'],
     color: colors.muted,
     fontFamily: typography.family.sans,
     fontSize: typography.sizes.base,
-    fontWeight: typography.weights.regular,
-    lineHeight: typography.sizes.base * typography.lineHeights.relaxed,
-    textAlign: 'center',
   },
-  footer: {
-    marginTop: spacing['24'],
+  emptyImage: {
+    width: 200,
+    height: 200,
+    marginBottom: spacing['24'],
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontFamily: fonts.semibold,
+    fontSize: typography.sizes.lg,
+    textAlign: 'center',
+    marginBottom: spacing['8'],
+  },
+  emptyText: {
+    color: colors.muted,
+    fontFamily: fonts.regular,
+    fontSize: typography.sizes.base,
+    textAlign: 'center',
+    lineHeight: typography.sizes.base * typography.lineHeights.relaxed,
   },
 });
