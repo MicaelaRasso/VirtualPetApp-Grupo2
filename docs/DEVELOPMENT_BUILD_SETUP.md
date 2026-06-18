@@ -240,8 +240,115 @@ Check the Metro terminal for JavaScript errors. The native shell is running, but
 
 ---
 
+## CI/CD with GitHub Actions and EAS Build
+
+This project uses GitHub Actions to automatically build the app on every push to `main` using **EAS Build** (Expo Application Services). The actual native compilation runs on Expo’s cloud builders, so the GitHub runners only submit the build and download the results.
+
+### What the CI/CD pipeline builds
+
+| Job | Artifact | Platform | Use case |
+|---|---|---|---|
+| Build Android APK | `android-apk` | Android | Install directly on Android phones or emulators for testing |
+| Build Android AAB | `android-aab` | Android | Upload to Google Play Store |
+| Build iOS Simulator archive | `ios-simulator` | iOS Simulator | Run on iOS Simulator on a Mac |
+
+### Dependencies every teammate needs
+
+To work on this project locally, install the following tools:
+
+1. **Git** — https://git-scm.com
+2. **Node.js LTS (version 22 recommended)** — https://nodejs.org
+   - Verify: `node -v` should print `v22.x.x`
+3. **npm** — included with Node.js
+   - Verify: `npm -v`
+4. **EAS CLI** — install globally:
+   ```bash
+   npm install -g eas-cli
+   ```
+   - Verify: `eas --version`
+
+Depending on what you want to do locally, you may also need:
+
+- **Android Studio** — only if you want to run the Android emulator or compile native Android code locally.
+- **Xcode + CocoaPods** — only if you are on a Mac and want to run the iOS Simulator locally.
+
+### Project setup for teammates
+
+After cloning the repository:
+
+```bash
+# 1. Install project dependencies
+npm install
+
+# 2. Log in to EAS (each teammate needs their own Expo account with access to the project)
+eas login
+
+# 3. Verify the project is linked correctly
+eas build:configure
+```
+
+### EAS and GitHub setup (one-time)
+
+The repository owner (or a maintainer) must complete these steps once:
+
+#### 1. Create/link the Expo project
+
+If the project is not yet linked to EAS:
+
+```bash
+eas login
+eas build:configure
+```
+
+This creates/updates `eas.json`, which is already committed in this repository.
+
+#### 2. Generate an Expo access token
+
+1. Go to https://expo.dev/settings/access-tokens
+2. Click **Create token**
+3. Give it a name like `GitHub Actions`
+4. Copy the token value
+
+#### 3. Add the token to GitHub secrets
+
+1. Open the repository on GitHub
+2. Go to **Settings → Secrets and variables → Actions**
+3. Click **New repository secret**
+4. Name: `EXPO_TOKEN`
+5. Value: the token copied above
+6. Click **Add secret**
+
+After this, every push to `main` will trigger the workflow defined in `.github/workflows/build.yml`.
+
+### Downloading build artifacts
+
+1. Open the repository on GitHub
+2. Go to **Actions**
+3. Click the latest `EAS Build` run
+4. Scroll down to **Artifacts**
+5. Download the file you need:
+   - `android-apk` → install on Android devices
+   - `android-aab` → upload to Google Play
+   - `ios-simulator` → extract and use with iOS Simulator
+
+### Important CI/CD notes
+
+#### Android keystore
+
+The first time the `Build Android AAB` job runs, EAS will automatically generate a signing keystore if one does not exist. **Download and back up this keystore immediately** from the EAS dashboard. Losing it means you cannot publish updates to the Play Store under the same app identity.
+
+#### iOS Simulator archive
+
+The iOS job produces a `.tar.gz` archive containing the `.app` bundle used by the iOS Simulator. A traditional `.ipa` file is for physical iOS devices and requires an Apple Developer account. Since this workflow only targets the Simulator, no Apple Developer account is required, but you do need a Mac to run the iOS Simulator.
+
+#### Expo dashboard
+
+Every build also appears in the Expo dashboard, where you can share install links and QR codes with the team.
+
+---
+
 ## Team notes
 
 - The generated `android/` and `ios/` folders can be committed to Git if the team wants deterministic native builds, but they are not required. Expo can regenerate them.
 - If you commit `android/` and `ios/`, every teammate must use the same versions of Android Studio, Xcode, and CocoaPods to avoid lock-file conflicts.
-- For a lighter setup, consider using **EAS Build** to generate development builds in the cloud and share them via QR code or install links.
+- For testing and sharing builds, prefer the **GitHub Actions artifacts** and the **Expo dashboard** produced by the CI/CD pipeline instead of building locally.
