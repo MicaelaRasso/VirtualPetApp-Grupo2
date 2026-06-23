@@ -21,15 +21,16 @@ export async function fetchOrderById(id: string): Promise<Order> {
  * Changes order status to IN_TRANSIT.
  */
 export async function pickupOrder(id: string): Promise<Order> {
-  return apiClient<Order>(`/orders/${id}/pickup`, { method: 'POST' });
+  return apiClient<Order>(`/orders/${id}/pickup`, { method: 'POST', body: '{}' });
 }
 
 /**
  * Mark an order as delivered.
+ * Requires the 6-digit delivery code the customer received by email.
  * Changes order status to DELIVERED.
  */
-export async function deliverOrder(id: string): Promise<Order> {
-  return apiClient<Order>(`/orders/${id}/deliver`, { method: 'POST' });
+export async function deliverOrder(id: string, code: string): Promise<Order> {
+  return apiClient<Order>(`/orders/${id}/deliver`, { method: 'POST', body: JSON.stringify({ code }) });
 }
 
 /**
@@ -38,5 +39,5 @@ export async function deliverOrder(id: string): Promise<Order> {
  * If deliveryAttempts >= 3 → status becomes CANCELLED.
  */
 export async function returnOrder(id: string): Promise<Order> {
-  return apiClient<Order>(`/orders/${id}/return`, { method: 'POST' });
+  return apiClient<Order>(`/orders/${id}/return`, { method: 'POST', body: '{}' });
 }

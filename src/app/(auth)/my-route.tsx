@@ -1,10 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   ActivityIndicator,
 } from 'react-native';
@@ -20,27 +22,33 @@ export default function MyRouteScreen() {
   const { myOrders, actionLoadingId, error, deliver, returnToDepot, clearError } =
     useOrdersStore();
 
+  const [deliveringOrder, setDeliveringOrder] = useState<Order | null>(null);
+  const [code, setCode] = useState('');
+
   const inTransit = myOrders.filter((o) => o.status === 'IN_TRANSIT');
   const completed = myOrders.filter(
     (o) => o.status === 'DELIVERED' || o.status === 'NOT_DELIVERED' || o.status === 'CANCELLED'
   );
 
-  const handleDeliver = useCallback(
-    (order: Order) => {
-      Alert.alert(
-        'Confirmar entrega',
-        `¿Entregaste el pedido a ${order.customerName}?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Sí, entregado',
-            onPress: () => deliver(order.id),
-          },
-        ]
-      );
-    },
-    [deliver]
-  );
+  const handleDeliver = useCallback((order: Order) => {
+    setCode('');
+    clearError();
+    setDeliveringOrder(order);
+  }, [clearError]);
+
+  const closeDeliverModal = useCallback(() => {
+    setDeliveringOrder(null);
+    setCode('');
+  }, []);
+
+  const confirmDeliver = useCallback(async () => {
+    if (!deliveringOrder || code.length !== 6) return;
+    const ok = await deliver(deliveringOrder.id, code);
+    if (ok) {
+      setDeliveringOrder(null);
+      setCode('');
+    }
+  }, [deliveringOrder, code, deliver]);
 
   const handleReturn = useCallback(
     (order: Order) => {
@@ -185,6 +193,63 @@ export default function MyRouteScreen() {
           myOrders.length === 0 ? styles.emptyContainer : styles.listContent
         }
       />
+
+      <Modal
+        visible={deliveringOrder !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDeliverModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Confirmar entrega</Text>
+            <Text style={styles.modalSubtitle}>
+              Pedile a {deliveringOrder?.customerName} el código de entrega de 6 dígitos
+              que recibió por mail.
+            </Text>
+
+            <TextInput
+              style={styles.codeInput}
+              value={code}
+              onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="------"
+              placeholderTextColor={colors.muted}
+              autoFocus
+              textContentType="oneTimeCode"
+            />
+
+            {error ? <Text style={styles.modalError}>{error}</Text> : null}
+
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={closeDeliverModal}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  styles.modalCancelBtn,
+                  pressed && styles.actionBtnDisabled,
+                ]}
+              >
+                <Text style={styles.modalCancelLabel}>Cancelar</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={confirmDeliver}
+                disabled={code.length !== 6}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  styles.modalConfirmBtn,
+                  pressed && styles.deliverBtnPressed,
+                  code.length !== 6 && styles.actionBtnDisabled,
+                ]}
+              >
+                <Text style={styles.actionBtnLabel}>Confirmar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -353,4 +418,68 @@ const styles = StyleSheet.create({
   },
   returnBtnPressed: { backgroundColor: colors.errorMuted },
   returnBtnLabel: { color: colors.error },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    paddingHorizontal: spacing['24'],
+  },
+  modalCard: {
+    backgroundColor: colors.background,
+    borderRadius: radii['16'],
+    padding: spacing['24'],
+  },
+  modalTitle: {
+    color: colors.ink,
+    fontFamily: fonts.bold,
+    fontSize: typography.sizes.xl,
+    marginBottom: spacing['8'],
+  },
+  modalSubtitle: {
+    color: colors.muted,
+    fontFamily: fonts.regular,
+    fontSize: typography.sizes.sm,
+    lineHeight: typography.sizes.sm * typography.lineHeights.relaxed,
+    marginBottom: spacing['16'],
+  },
+  codeInput: {
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radii['12'],
+    paddingVertical: spacing['12'],
+    color: colors.ink,
+    fontFamily: fonts.bold,
+    fontSize: typography.sizes['2xl'],
+    textAlign: 'center',
+    letterSpacing: 12,
+  },
+  modalError: {
+    color: colors.error,
+    fontFamily: fonts.medium,
+    fontSize: typography.sizes.sm,
+    marginTop: spacing['8'],
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing['8'],
+    marginTop: spacing['16'],
+  },
+  modalBtn: {
+    flex: 1,
+    minHeight: touchTargets.minHeight,
+    borderRadius: radii['12'],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCancelBtn: {
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  modalCancelLabel: {
+    color: colors.ink,
+    fontFamily: fonts.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  modalConfirmBtn: { backgroundColor: colors.success },
 });

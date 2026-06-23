@@ -22,6 +22,7 @@ export default function AuthLayout() {
     >
       <Tabs.Screen name="orders" />
       <Tabs.Screen name="my-route" />
+      <Tabs.Screen name="index" options={{ href: null }} />
     </Tabs>
   );
 }

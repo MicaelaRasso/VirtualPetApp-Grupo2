@@ -11,13 +11,16 @@ type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 function getTabConfig(name: string, focused: boolean): { icon: IoniconsName; label: string } {
   switch (name) {
     case 'orders':
-      return { icon: focused ? 'cube' : 'cube-outline', label: 'Disponibles' };
+    case 'orders/index':
+      return { icon: focused ? 'cube' : 'cube-outline', label: 'Para retirar' };
     case 'my-route':
-      return { icon: focused ? 'bicycle' : 'bicycle', label: 'Mi Recorrido' };
+      return { icon: focused ? 'bicycle' : 'bicycle', label: 'Mis pedidos' };
     default:
       return { icon: 'ellipse-outline', label: name };
   }
 }
+
+const HIDDEN_TABS = new Set(['index']);
 
 export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -36,7 +39,8 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom || spacing['8'] }]}>
-      {state.routes.map((route: any, index: number) => {
+      {state.routes.filter((route: any) => !HIDDEN_TABS.has(route.name)).map((route: any) => {
+        const index = state.routes.indexOf(route);
         const isFocused = state.index === index;
         const { icon, label } = getTabConfig(route.name, isFocused);
 
@@ -93,7 +97,7 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: colors.primary,
+    backgroundColor: '#000000',
     paddingTop: spacing['8'],
     borderTopWidth: 0,
     // Sombra hacia arriba

@@ -21,7 +21,7 @@ interface OrdersState {
   loadAvailableOrders: () => Promise<void>;
   loadMyOrders: () => Promise<void>;
   pickup: (orderId: string) => Promise<void>;
-  deliver: (orderId: string) => Promise<void>;
+  deliver: (orderId: string, code: string) => Promise<boolean>;
   returnToDepot: (orderId: string) => Promise<void>;
   clearError: () => void;
 }
@@ -67,16 +67,18 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     }
   },
 
-  deliver: async (orderId) => {
+  deliver: async (orderId, code) => {
     set({ actionLoadingId: orderId, error: null });
     try {
-      const updated = await deliverOrder(orderId);
+      const updated = await deliverOrder(orderId, code);
       set((state) => ({
         myOrders: state.myOrders.map((o) => (o.id === orderId ? updated : o)),
         actionLoadingId: null,
       }));
+      return true;
     } catch (e: any) {
       set({ actionLoadingId: null, error: e.message ?? 'No se pudo registrar la entrega' });
+      return false;
     }
   },
 

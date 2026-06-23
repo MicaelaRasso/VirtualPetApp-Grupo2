@@ -26,9 +26,12 @@ export function OrderCard({ order, onPickup, isLoading, variant = 'available' }:
 
   return (
     <View style={styles.card}>
-      {/* Status badge */}
-      <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
-        <Text style={[styles.badgeText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+      {/* Status badge + Order ID */}
+      <View style={styles.topRow}>
+        <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
+          <Text style={[styles.badgeText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+        </View>
+        <Text style={styles.orderId}>#{order.id.slice(0, 8)}</Text>
       </View>
 
       {/* Customer + Address */}
@@ -87,15 +90,25 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing['12'],
+  },
   badge: {
     alignSelf: 'flex-start',
     borderRadius: radii['full'],
     paddingHorizontal: spacing['12'],
     paddingVertical: spacing['4'],
-    marginBottom: spacing['12'],
   },
   badgeText: {
     fontFamily: fonts.semibold,
+    fontSize: typography.sizes.xs,
+  },
+  orderId: {
+    color: colors.muted,
+    fontFamily: fonts.medium,
     fontSize: typography.sizes.xs,
   },
   customer: {
@@ -131,13 +144,13 @@ const styles = StyleSheet.create({
   pickupButton: {
     marginTop: spacing['12'],
     minHeight: touchTargets.minHeight,
-    backgroundColor: colors.primary,
+    backgroundColor: '#000000',
     borderRadius: radii['12'],
     justifyContent: 'center',
     alignItems: 'center',
   },
   pickupButtonPressed: {
-    backgroundColor: colors.primaryDeep,
+    backgroundColor: '#222222',
   },
   pickupButtonDisabled: {
     backgroundColor: colors.border,
