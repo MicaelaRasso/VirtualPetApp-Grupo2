@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -17,13 +18,31 @@ import { useAuthStore } from '@/stores/authStore';
 import { useOrdersStore } from '@/stores/ordersStore';
 import type { Order } from '@/types/orders';
 
+// Formatea un ISO string a "dd/mm/aaaa HH:MM" (24hs).
+function formatActionDate(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function MyRouteScreen() {
   const { isOffline } = useAuthStore();
-  const { myOrders, actionLoadingId, error, deliver, returnToDepot, clearError } =
+  const { myOrders, isLoadingMine, actionLoadingId, error, deliver, returnToDepot, clearError, loadMyOrders } =
     useOrdersStore();
 
   const [deliveringOrder, setDeliveringOrder] = useState<Order | null>(null);
   const [code, setCode] = useState('');
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+
+  const toggleItems = useCallback((id: string) => {
+    setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  useEffect(() => {
+    loadMyOrders();
+  }, []);
 
   const inTransit = myOrders.filter((o) => o.status === 'IN_TRANSIT');
   const completed = myOrders.filter(
@@ -110,6 +129,43 @@ export default function MyRouteScreen() {
           {item.items.length} {item.items.length === 1 ? 'producto' : 'productos'} · ${item.total}
         </Text>
 
+        <View style={styles.actionInfo}>
+          <Text style={styles.actionInfoText}>Pedido #{item.id.slice(0, 8)}</Text>
+          {isDone && formatActionDate(item.updatedAt) ? (
+            <Text style={styles.actionInfoText}>{formatActionDate(item.updatedAt)}</Text>
+          ) : null}
+        </View>
+
+        {/* Detalle de productos (desplegable) */}
+        {item.items.length > 0 && (
+          <View style={styles.itemsBlock}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => toggleItems(item.id)}
+              style={styles.itemsToggle}
+            >
+              <Text style={styles.itemsToggleLabel}>
+                {expandedItems[item.id] ? 'Ocultar productos' : 'Ver productos'}
+              </Text>
+              <Text style={styles.itemsToggleLabel}>{expandedItems[item.id] ? '▴' : '▾'}</Text>
+            </Pressable>
+
+            {expandedItems[item.id] && (
+              <View style={styles.itemsList}>
+                {item.items.map((it, idx) => (
+                  <View key={idx} style={styles.itemRow}>
+                    <Text style={styles.itemQty}>{it.quantity}×</Text>
+                    <Text style={styles.itemName} numberOfLines={2}>
+                      {it.productNameSnapshot}
+                    </Text>
+                    {it.price ? <Text style={styles.itemPrice}>$ {it.price}</Text> : null}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         {!isDone && (
           <View style={styles.actions}>
             <Pressable
@@ -176,6 +232,13 @@ export default function MyRouteScreen() {
         data={[...inTransit, ...completed]}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoadingMine}
+            onRefresh={loadMyOrders}
+            tintColor={colors.primary}
+          />
+        }
         ListHeaderComponent={
           inTransit.length > 0 && completed.length > 0 ? (
             <Text style={styles.sectionLabel}>En camino</Text>
@@ -391,6 +454,61 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: typography.sizes.sm,
     marginBottom: spacing['12'],
+  },
+  actionInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing['8'],
+    marginBottom: spacing['12'],
+  },
+  actionInfoText: {
+    color: colors.muted,
+    fontFamily: fonts.medium,
+    fontSize: typography.sizes.xs,
+  },
+  itemsBlock: {
+    marginBottom: spacing['12'],
+  },
+  itemsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing['4'],
+  },
+  itemsToggleLabel: {
+    color: colors.primary,
+    fontFamily: fonts.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  itemsList: {
+    marginTop: spacing['4'],
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing['4'],
+  },
+  itemQty: {
+    color: colors.inkSecondary,
+    fontFamily: fonts.semibold,
+    fontSize: typography.sizes.sm,
+    marginRight: spacing['8'],
+    minWidth: 28,
+  },
+  itemName: {
+    flex: 1,
+    color: colors.ink,
+    fontFamily: fonts.regular,
+    fontSize: typography.sizes.sm,
+  },
+  itemPrice: {
+    color: colors.inkSecondary,
+    fontFamily: fonts.medium,
+    fontSize: typography.sizes.sm,
+    marginLeft: spacing['8'],
   },
   actions: {
     flexDirection: 'row',

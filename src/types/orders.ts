@@ -39,6 +39,10 @@ export interface Order {
   total: string;
   items: OrderItem[];
   shipment?: Shipment;
+  // Timestamps ISO que devuelve el backend. `updatedAt` refleja el momento
+  // de la última acción (entrega/devolución).
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface OrdersPage {

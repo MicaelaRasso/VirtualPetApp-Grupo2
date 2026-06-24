@@ -55,6 +55,14 @@ export default class Order extends Model {
     return (this as any)._getRaw('method_name')
   }
 
+  get remoteCreatedAt(): string | undefined {
+    return (this as any)._getRaw('remote_created_at') ?? undefined
+  }
+
+  get remoteUpdatedAt(): string | undefined {
+    return (this as any)._getRaw('remote_updated_at') ?? undefined
+  }
+
   get isSynced(): boolean {
     return Boolean((this as any)._getRaw('is_synced'))
   }

@@ -10,6 +10,15 @@ export async function fetchAvailableOrders(page = 1, limit = 20): Promise<Orders
 }
 
 /**
+ * Fetch the orders currently assigned to the logged-in rider.
+ * Includes IN_TRANSIT (en camino), DELIVERED (entregados) y NOT_DELIVERED (devueltos).
+ * Only RIDER role can call this endpoint.
+ */
+export async function fetchMyOrders(page = 1, limit = 50): Promise<OrdersPage> {
+  return apiClient<OrdersPage>(`/orders/assigned?page=${page}&limit=${limit}`);
+}
+
+/**
  * Fetch the detail of a single order by ID.
  */
 export async function fetchOrderById(id: string): Promise<Order> {

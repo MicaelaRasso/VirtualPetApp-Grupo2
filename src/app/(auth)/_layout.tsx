@@ -4,9 +4,13 @@ import { router } from 'expo-router';
 
 import { useAuthStore } from '@/stores/authStore';
 import { AppTabBar } from '@/components/AppTabBar';
+import { useNetworkSync } from '@/hooks/useNetworkSync';
 
 export default function AuthLayout() {
   const { isAuthenticated, isHydrated } = useAuthStore();
+
+  // Auto-sync: drena la cola offline al recuperar conexión.
+  useNetworkSync();
 
   // Guard: si el usuario no está autenticado (logout, token expirado), volver al login
   useEffect(() => {

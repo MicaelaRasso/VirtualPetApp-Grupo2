@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Order } from '@/types/orders';
 import { colors, fonts, radii, spacing, touchTargets, typography } from '@/constants/theme';
@@ -18,6 +19,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }>
 };
 
 export function OrderCard({ order, onPickup, isLoading, variant = 'available' }: OrderCardProps) {
+  const [showItems, setShowItems] = useState(false);
   const statusInfo = STATUS_LABEL[order.status] ?? STATUS_LABEL['IN_PREPARATION'];
   const address = order.shippingAddress;
   const addressLine = [address.street, address.city, address.province]
@@ -50,6 +52,36 @@ export function OrderCard({ order, onPickup, isLoading, variant = 'available' }:
         <Text style={styles.attempts}>
           Intentos: {order.deliveryAttempts} / 3
         </Text>
+      )}
+
+      {/* Detalle de productos (desplegable) */}
+      {order.items.length > 0 && (
+        <View style={styles.itemsBlock}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setShowItems((v) => !v)}
+            style={styles.itemsToggle}
+          >
+            <Text style={styles.itemsToggleLabel}>
+              {showItems ? 'Ocultar productos' : 'Ver productos'}
+            </Text>
+            <Text style={styles.itemsToggleChevron}>{showItems ? '▴' : '▾'}</Text>
+          </Pressable>
+
+          {showItems && (
+            <View style={styles.itemsList}>
+              {order.items.map((item, idx) => (
+                <View key={idx} style={styles.itemRow}>
+                  <Text style={styles.itemQty}>{item.quantity}×</Text>
+                  <Text style={styles.itemName} numberOfLines={2}>
+                    {item.productNameSnapshot}
+                  </Text>
+                  {item.price ? <Text style={styles.itemPrice}>$ {item.price}</Text> : null}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
       )}
 
       {/* Action button — only on available variant */}
@@ -140,6 +172,55 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: typography.sizes.xs,
     marginBottom: spacing['8'],
+  },
+  itemsBlock: {
+    marginTop: spacing['8'],
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing['8'],
+  },
+  itemsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing['4'],
+  },
+  itemsToggleLabel: {
+    color: colors.primary,
+    fontFamily: fonts.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  itemsToggleChevron: {
+    color: colors.primary,
+    fontFamily: fonts.semibold,
+    fontSize: typography.sizes.sm,
+  },
+  itemsList: {
+    marginTop: spacing['4'],
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing['4'],
+  },
+  itemQty: {
+    color: colors.inkSecondary,
+    fontFamily: fonts.semibold,
+    fontSize: typography.sizes.sm,
+    marginRight: spacing['8'],
+    minWidth: 28,
+  },
+  itemName: {
+    flex: 1,
+    color: colors.ink,
+    fontFamily: fonts.regular,
+    fontSize: typography.sizes.sm,
+  },
+  itemPrice: {
+    color: colors.inkSecondary,
+    fontFamily: fonts.medium,
+    fontSize: typography.sizes.sm,
+    marginLeft: spacing['8'],
   },
   pickupButton: {
     marginTop: spacing['12'],

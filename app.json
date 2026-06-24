@@ -56,6 +56,19 @@
           "icon": "./assets/icon.png",
           "color": "#ffffff"
         }
+      ],
+      "./plugins/withWatermelondb",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "packagingOptions": {
+              "pickFirst": [
+                "**/libc++_shared.so"
+              ]
+            }
+          }
+        }
       ]
     ],
     "experiments": {

@@ -41,10 +41,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing['24'],
     borderRadius: radii['12'],
-    backgroundColor: colors.primary,
+    backgroundColor: '#000000',
   },
   pressed: {
-    backgroundColor: colors.primaryDeep,
+    backgroundColor: '#1a1a1a',
   },
   disabled: {
     backgroundColor: colors.border,
